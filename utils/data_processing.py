@@ -49,8 +49,9 @@ def data_processing(url):
 
     return contexts, questions, answers
 
-#union test and utilize example below
-contexts,questions,answers =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
-print(len(contexts))
-print(len(questions))
-print(len(answers))
+if __name__ == "__main__":
+    #union test and utilize example below
+    contexts,questions,answers =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+    print(len(contexts))
+    print(len(questions))
+    print(len(answers))
