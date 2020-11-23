@@ -173,5 +173,6 @@ def data_processing(url):
 
     return encodings
 
-#union test and utilize example below
-encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+if __name__ == "__main__":
+    #union test and utilize example below
+    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
