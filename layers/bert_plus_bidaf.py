@@ -42,9 +42,13 @@ class BERT_plus_BiDAF(nn.Module):
             self.attention_layer = AttFlow(feature_dimension=self.hidden_dim)
         
         # Additional modeling layer LSTM/Transformer:
-        """ TODO: add additional modeling layer(not urgent)"""
+        """ TODO: add a flag using BERT or LSTM"""
         if if_extra_modeling:
-            self.modeling_layer = None
+            if self.cnn:
+                self.modeling_layer = nn.LSTM(input_size=2*self.hidden_dim,hidden_size=2*self.hidden_dim)
+            else:
+                self.modeling_layer = nn.LSTM(input_size=self.hidden_dim,hidden_size=self.hidden_dim)
+            
 
         # Prediction
         if self.cnn:
@@ -83,6 +87,10 @@ class BERT_plus_BiDAF(nn.Module):
             c2q_attention, q2c_attention = self.attention_layer(context_features, question_features) # (N,T,2d), (N,T,2d)
         else:
             c2q_attention, q2c_attention = self.attention_layer(bert_context_features, bert_question_features) # (N,T,d), (N,T,d)
+
+        # If we use extra modeling layer
+        if self.modeling_layer:
+
         
         # Combine all features and make prediction
         if self.cnn:
