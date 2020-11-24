@@ -12,14 +12,24 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from layers.att_flow import AttFlow
-from layers.char_cnn import CharCNN
-from layers.pred_layer import PredictionLayer
 from pytorch_pretrained_bert import BertModel
+try:
+    from layers.att_flow import AttFlow
+    from layers.char_cnn import CharCNN
+    from layers.pred_layer import PredictionLayer
+except ModuleNotFoundError:
+    from att_flow import AttFlow
+    from char_cnn import CharCNN
+    from pred_layer import PredictionLayer
 # from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 
 class BERT_plus_BiDAF(nn.Module):
     def __init__(self, if_cnn = False, if_extra_modeling = False):
+        """
+        if_cnn: if to use a character-level cnn encoder. Default: false
+        if_extra_modeling: if to use an additional LSTM modeling layer after attention flow. Default: false
+        TODO: consider add a flag replacing the LSTM modeling by transformer
+        """
         super().__init__()
         # Constants
         self.hidden_dim = 768   # dimension d: because of BERT
@@ -42,19 +52,21 @@ class BERT_plus_BiDAF(nn.Module):
             self.attention_layer = AttFlow(feature_dimension=self.hidden_dim)
         
         # Additional modeling layer LSTM/Transformer:
-        """ TODO: add a flag using BERT or LSTM"""
         if if_extra_modeling:
             if self.cnn:
-                self.modeling_layer = nn.LSTM(input_size=2*self.hidden_dim,hidden_size=2*self.hidden_dim)
+                self.modeling_layer = nn.LSTM(input_size=8*self.hidden_dim,hidden_size=2*self.hidden_dim, num_layers=2)
             else:
-                self.modeling_layer = nn.LSTM(input_size=self.hidden_dim,hidden_size=self.hidden_dim)
+                self.modeling_layer = nn.LSTM(input_size=4*self.hidden_dim,hidden_size=2*self.hidden_dim, num_layers=2)
+        else:
+            self.modeling_layer = None
             
-
         # Prediction
-        if self.cnn:
+        if self.modeling_layer:
+            self.prediction_layer = PredictionLayer(feature_dimension=2*self.hidden_dim)
+        elif self.cnn:
             self.prediction_layer = PredictionLayer(feature_dimension=8*self.hidden_dim)
-        else: 
-            self.prediction_layer = PredictionLayer(feature_dimension=4*self.hidden_dim) 
+        else:
+            self.prediction_layer = PredictionLayer(feature_dimension=4*self.hidden_dim)
 
     def forward(self, input_ids, input_mask):
         """ 
@@ -88,22 +100,24 @@ class BERT_plus_BiDAF(nn.Module):
         else:
             c2q_attention, q2c_attention = self.attention_layer(bert_context_features, bert_question_features) # (N,T,d), (N,T,d)
 
-        # If we use extra modeling layer
-        if self.modeling_layer:
-            """ TODO: add modeling layer"""
-            None
+       
         
         # Combine all features and make prediction
         if self.cnn:
             combined_features = torch.cat((context_features, c2q_attention, 
-            torch.mul(context_features, c2q_attention), torch.mul(context_features, q2c_attention)), dim=2)
+            torch.mul(context_features, c2q_attention), torch.mul(context_features, q2c_attention)), dim=-1) # (N,T,8d)
         else:
             combined_features = torch.cat((bert_context_features, c2q_attention, 
             torch.mul(bert_context_features, c2q_attention), torch.mul(bert_context_features, q2c_attention)), dim = -1) # (N,T,4d)
+
+        # If we use extra modeling layer
+        if self.modeling_layer:
+            combined_features = self.modeling_layer(combined_features) #(N,T,2d)
+        
         p_start, p_end = self.prediction_layer(combined_features)
 
         return p_start, p_end
 
 if __name__ == "__main__":
-    model = BERT_plus_BiDAF()
+    model = BERT_plus_BiDAF(if_extra_modeling=True)
     print(model)
