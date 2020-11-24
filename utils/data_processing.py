@@ -225,4 +225,3 @@ if __name__ == "__main__":
     print("encoding:",encodings['input_ids'][10])
     print("attention:",encodings['attention_mask'][10])
     """
-
