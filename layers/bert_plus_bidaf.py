@@ -12,14 +12,15 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from att_flow import AttFlow
-from char_cnn import CharCNN
-from pred_layer import PredictionLayer
+from layers.att_flow import AttFlow
+from layers.char_cnn import CharCNN
+from layers.pred_layer import PredictionLayer
 from pytorch_pretrained_bert import BertModel
 # from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 
 class BERT_plus_BiDAF(nn.Module):
     def __init__(self, if_cnn = False, if_extra_modeling = False):
+        super().__init__()
         # Constants
         self.hidden_dim = 768   # dimension d: because of BERT
         self.vocab_size = None  # TODO: use BertTokenizer.vocab_size
@@ -93,3 +94,7 @@ class BERT_plus_BiDAF(nn.Module):
         p_start, p_end = self.prediction_layer(combined_features)
 
         return p_start, p_end
+
+if __name__ == "__main__":
+    model = BERT_plus_BiDAF()
+    print(model)

@@ -23,6 +23,7 @@ import numpy as np
 
 class CharCNN(nn.Module):
     def __init__(self, input_length, vocab_size):
+        super().__init__()
         # Under construction
         self.embedding_layer = nn.Embedding(vocab_size, embedding_dim = vocab_size)
         self.conv1 = nn.Sequential(nn.Conv2d(1,1,7), nn.MaxPool2d(3), nn.ReLU())

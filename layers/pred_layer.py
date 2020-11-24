@@ -12,6 +12,7 @@ import numpy as np
 
 class PredictionLayer(nn.Module):
     def __init__(self, feature_dimension):
+        super().__init__()
         self.pred_start = nn.Linear(in_features=feature_dimension, out_features=1, bias= False)
         self.pred_end = nn.Linear(in_features=feature_dimension, out_features=1, bias = False)
     def forward(self, features):
