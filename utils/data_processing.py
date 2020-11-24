@@ -206,6 +206,7 @@ def data_processing(url):
 
     return encodings
 
+<<<<<<< HEAD
 #union test and utilize example below
 encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
 
@@ -223,3 +224,8 @@ print("length of attention:",len(encodings['attention_mask'][10]))
 print("encoding:",encodings['input_ids'][10])
 print("attention:",encodings['attention_mask'][10])
 """
+=======
+if __name__ == "__main__":
+    #union test and utilize example below
+    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+>>>>>>> 04c739f6bb10259e114b697e6dfbc1a4768855ea
