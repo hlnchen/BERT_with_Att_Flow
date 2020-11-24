@@ -6,14 +6,19 @@ In this file we process the SQuAD dataset:
 
 Input: SQuAD handler/url/json.
 Output: encodings. encodings is a dictionary with keys including 'input_ids','attention_mask' and 'token_type'
-and input_ids is [CLS][context][SEP][question][SEP]
+and input_ids is [CLS][question][SEP][context][SEP]
 
 if question has no answer, text of answer is 'no-answer'. start_positions and end_positions is [CLS] position, which is 0
 """
 
 """
 This preprocess add padding to both context and question, making each context and each question has the same length to fit the BiDAF model
-This may cause some influence to BERT model performance. One of the reason is it may affect positional embedding
+This may cause some influence to BERT model performance. 
+Firstly, we have truncate more tokens of input_ids (up to 60 tokens in this training case) to fit in BERT max input length (512). It may lose some information.
+Secondly, it may affect positional embedding
+
+We may figure out better ways to avoid information lose when doing truncation
+
 """
 
 import numpy as np
@@ -28,6 +33,7 @@ import torch
 
 CLS_TOKEN = 101
 SEP_TOKEN = 102
+MAX_LENGTH = 512  #max input ength that bert model can accept
 
 def load_data(train_df):
     contexts = []
@@ -76,7 +82,7 @@ def add_end_idx(answers, contexts):
 """
 below functions are to padding both contexts and question to make each contexts and each questions have the same length
 """
-def getContextLength(encodings, i):
+def getQuestionLength(encodings, i):
     ans = 0
     for id in encodings['input_ids'][i]:
         if id == SEP_TOKEN:
@@ -86,53 +92,55 @@ def getContextLength(encodings, i):
     return ans
 
 #add padding to make all questions have same length
-def addPaddingContext(encodings,index,maxConLen):
-    conLen = getContextLength(encodings,index)
-    for insertIndex in range(conLen,maxConLen):
-        encodings['input_ids'][index].insert(insertIndex,0)
-        encodings['attention_mask'][index].insert(insertIndex,0)
-
-def getQuestionLength(encodings,index):
-    SEP_SIGNAL = 0
-    ans = 0
-    for id in encodings['input_ids'][index]:
-        if SEP_SIGNAL == 0 and id == SEP_TOKEN:
-            SEP_SIGNAL = 1
-        if SEP_SIGNAL == 1:
-            ans += 1
-    return ans
-
 def addPaddingQuestion(encodings,index,maxQueLen):
     queLen = getQuestionLength(encodings,index)
     for insertIndex in range(queLen,maxQueLen):
         encodings['input_ids'][index].insert(insertIndex,0)
         encodings['attention_mask'][index].insert(insertIndex,0)
+    
+    return maxQueLen - queLen
+
 
 """
 add padding to both context and question
 """
 def postTokenize(encodings):
-    #get max context length
-    n = len(encodings['input_ids'])
-    maxConLen = 0
-    for index in range(n):
-        conLen = getContextLength(encodings,index)
-        if conLen > maxConLen:
-            maxConLen = conLen
-
-    #now we have maxConLen
-    for index in range(n):
-        addPaddingContext(encodings,index,maxConLen)
+    paddingLengths = []  #token_position of answer will be move to right since we add padding to question,
+                        #paddingLength is to track how many positions moved
 
     #get max question length
+    n = len(encodings['input_ids'])
     maxQueLen = 0
     for index in range(n):
         queLen = getQuestionLength(encodings,index)
         if queLen > maxQueLen:
             maxQueLen = queLen
+
+    print("max question length:",maxQueLen)
     #now we have maxQueLen
     for index in range(n):
-        addPaddingQuestion(encodings,index,maxQueLen)
+        paddingLength = addPaddingQuestion(encodings,index,maxQueLen)
+        paddingLengths.append(paddingLength)
+    
+
+    """
+    if input_length > 512, do truncation to 512
+    if input_length < 512, add padding to 512
+    """    
+
+    for index in range(n):
+        lst_length = len(encodings['input_ids'][index])
+        if lst_length > 512:
+            encodings['input_ids'][index] = encodings['input_ids'][index][0:512]
+            encodings['attention_mask'][index] = encodings['attention_mask'][index][0:512]
+        else:
+            for insertIndex in range(lst_length,512):
+                encodings['input_ids'][index].insert(insertIndex,0)
+                encodings['attention_mask'][index].insert(insertIndex,0)
+
+    return paddingLengths
+
+
 """
 end of padding functions 
 """
@@ -144,13 +152,11 @@ transfer to token_position
 def add_token_positions(encodings, answers, tokenizer):
     start_positions = []
     end_positions = []
-    #TO DO
-    #consider no answer situation
-    if answers['text'] == 'no-answer':
-        start_positions.append(0)
-        end_positions.append(0)
-    else:
-        for i in range(len(answers)):
+    for i in range(len(answers)):
+        if answers[i]['text'] == 'no-answer':
+            start_positions.append(0)
+            end_positions.append(0)
+        else:
             start_positions.append(encodings.char_to_token(i,answers[i]['answer_start']))
             end_positions.append(encodings.char_to_token(i,answers[i]['answer_end']-1))
             #if none, the answer span has been truncated
@@ -161,18 +167,65 @@ def add_token_positions(encodings, answers, tokenizer):
 
     encodings.update({'start_positions':start_positions,'end_positions':end_positions})
 
+"""
+after padding to QUESTION, token_position of answer will move to right
+so we need modify token_positions of answer
+"""
+
+def modify_token_positions(encodings, paddingLengths, answers):
+    start_positions = []
+    end_positions = []
+    for i in range(len(answers)):
+        if answers[i]['text'] == 'no-answer':
+            start_positions.append(0)
+            end_positions.append(0)
+        else:
+            start_position = encodings['start_positions'][i] + paddingLengths[i]
+            end_position = encodings['end_positions'][i] + paddingLengths[i]
+            if start_position > 511:
+                start_position = 511
+            if end_position > 511:
+                end_position = 511
+            start_positions.append(start_position)
+            end_positions.append(end_position)
+    
+    encodings.update({'start_positions':start_positions,'end_positions':end_positions})    
+
+
+
 def data_processing(url):
     response = urllib.request.urlopen(url)
     raw = pd.read_json(response)
     contexts, questions, answers, ids = load_data(raw)
     add_end_idx(answers,contexts)
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
-    encodings = tokenizer(contexts, questions, truncation = True, padding = True)
+    encodings = tokenizer(questions, contexts, truncation = True, padding = True)
     add_token_positions(encodings,answers,tokenizer)
-    postTokenize(encodings)
+    paddingLengths = postTokenize(encodings)
+    modify_token_positions(encodings,paddingLengths,answers)
 
     return encodings
 
+<<<<<<< HEAD
+#union test and utilize example below
+encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+
+print("length of start_postion:",len(encodings['start_positions']))
+print("start_position:",encodings['start_positions'][0])
+
+print("length of end_postion:",len(encodings['end_positions']))
+print("end_position:",encodings['end_positions'][0])
+
+
+"""
+print("length of encoding:",len(encodings['input_ids'][10]))
+print("length of attention:",len(encodings['attention_mask'][10]))
+
+print("encoding:",encodings['input_ids'][10])
+print("attention:",encodings['attention_mask'][10])
+"""
+=======
 if __name__ == "__main__":
     #union test and utilize example below
     encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+>>>>>>> 04c739f6bb10259e114b697e6dfbc1a4768855ea
