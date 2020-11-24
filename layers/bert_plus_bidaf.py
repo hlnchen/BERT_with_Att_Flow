@@ -90,7 +90,8 @@ class BERT_plus_BiDAF(nn.Module):
 
         # If we use extra modeling layer
         if self.modeling_layer:
-
+            """ TODO: add modeling layer"""
+            None
         
         # Combine all features and make prediction
         if self.cnn:
