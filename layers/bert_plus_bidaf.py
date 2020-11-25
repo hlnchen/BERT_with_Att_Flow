@@ -24,8 +24,9 @@ except ModuleNotFoundError:
 # from transformers import BertPreTrainedModel, BertModel, BertTokenizer
 
 class BERT_plus_BiDAF(nn.Module):
-    def __init__(self, if_cnn = False, if_extra_modeling = False):
+    def __init__(self, question_len = 62, if_cnn = False, if_extra_modeling = False):
         """
+        question_len: the length of the question in the padded sequence
         if_cnn: if to use a character-level cnn encoder. Default: false
         if_extra_modeling: if to use an additional LSTM modeling layer after attention flow. Default: false
         TODO: consider add a flag replacing the LSTM modeling by transformer
@@ -34,7 +35,7 @@ class BERT_plus_BiDAF(nn.Module):
         # Constants
         self.hidden_dim = 768   # dimension d: because of BERT
         self.vocab_size = None  # TODO: use BertTokenizer.vocab_size
-        self.question_len = 62
+        self.question_len = question_len
         # Network modules
         # BERT
         self.bert_layer = BertModel.from_pretrained('bert-base-uncased')
