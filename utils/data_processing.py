@@ -194,10 +194,18 @@ def modify_token_positions(encodings, paddingLengths, answers):
 
 
 
-def data_processing(url):
-    response = urllib.request.urlopen(url)
-    raw = pd.read_json(response)
-    contexts, questions, answers, ids = load_data(raw)
+def data_processing(url1, url2):
+    """
+    two urls for train and validation data, respectively
+    """
+    response1, response2 = urllib.request.urlopen(url1), urllib.request.urlopen(url2)
+    raw1, raw2 = pd.read_json(response1), pd.read_json(response2)
+    contexts1, questions1, answers1, ids1 = load_data(raw1)
+    contexts2, questions2, answers2, ids2 = load_data(raw2)
+    contexts = contexts1 + contexts2
+    answers = answers1 + answers2
+    questions = questions1 + questions2
+    ids = ids1 + ids2
     add_end_idx(answers,contexts)
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     encodings = tokenizer(questions, contexts, truncation = True, padding = True)
@@ -207,19 +215,12 @@ def data_processing(url):
 
     return encodings
 
-#union test and utilize example below
-encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+if __name__ == "__main__":
+    #union test and utilize example below
+    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json", "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json")
 
-print("length of start_postion:",len(encodings['start_positions']))
-print("start_position:",encodings['start_positions'][0])
+    print("length of start_postion:",len(encodings['start_positions']))
+    print("start_position:",encodings['start_positions'][0])
 
-print("length of end_postion:",len(encodings['end_positions']))
-print("end_position:",encodings['end_positions'][0])
-
-
-
-print("length of encoding:",len(encodings['input_ids'][10]))
-print("length of attention:",len(encodings['attention_mask'][10]))
-
-print("encoding:",encodings['input_ids'][10])
-print("attention:",encodings['attention_mask'][10])
+    print("length of end_postion:",len(encodings['end_positions']))
+    print("end_position:",encodings['end_positions'][0])
