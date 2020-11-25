@@ -33,7 +33,7 @@ import torch
 
 CLS_TOKEN = 101
 SEP_TOKEN = 102
-QUESTION_MAXLENGTH_SETTING = 62    # we can adjust this setting
+QUESTION_MAXLENGTH_SETTING = 62    # we can adjust this setting； If question over that length, do truncation
 MAX_LENGTH = 512  #max input ength that bert model can accept
 
 def load_data(train_df):
@@ -111,17 +111,30 @@ def postTokenize(encodings):
 
     #get max question length
     n = len(encodings['input_ids'])
+
+    """
     maxQueLen = 0
     for index in range(n):
         queLen = getQuestionLength(encodings,index)
         if queLen > maxQueLen:
             maxQueLen = queLen
+    """
 
-    print("max question length:",maxQueLen)
-    #now we have maxQueLen
+    """
     for index in range(n):
         paddingLength = addPaddingQuestion(encodings,index,maxQueLen)
         paddingLengths.append(paddingLength)
+    """
+
+    for index in range(n):
+        que_length = getQuestionLength(encodings,index)
+        if que_length > QUESTION_MAXLENGTH_SETTING:
+            encodings['input_ids'][index] = encodings['input_ids'][index][0:QUESTION_MAXLENGTH_SETTING]
+            encodings['attention_mask'][index] = encodings['attention_mask'][index][0:QUESTION_MAXLENGTH_SETTING]
+        else:
+            for insertIndex in range(que_length,QUESTION_MAXLENGTH_SETTING):
+                encodings['input_ids'][index].insert(insertIndex,0)
+                encodings['attention_mask'][index].insert(insertIndex,0)
     
 
     """
