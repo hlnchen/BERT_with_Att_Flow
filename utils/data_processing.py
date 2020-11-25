@@ -33,6 +33,7 @@ import torch
 
 CLS_TOKEN = 101
 SEP_TOKEN = 102
+QUESTION_MAXLENGTH_SETTING = 62    # we can adjust this setting； If question over that length, do truncation
 MAX_LENGTH = 512  #max input ength that bert model can accept
 
 def load_data(train_df):
@@ -110,17 +111,30 @@ def postTokenize(encodings):
 
     #get max question length
     n = len(encodings['input_ids'])
+
+    """
     maxQueLen = 0
     for index in range(n):
         queLen = getQuestionLength(encodings,index)
         if queLen > maxQueLen:
             maxQueLen = queLen
+    """
 
-    print("max question length:",maxQueLen)
-    #now we have maxQueLen
+    """
     for index in range(n):
         paddingLength = addPaddingQuestion(encodings,index,maxQueLen)
         paddingLengths.append(paddingLength)
+    """
+
+    for index in range(n):
+        que_length = getQuestionLength(encodings,index)
+        if que_length > QUESTION_MAXLENGTH_SETTING:
+            encodings['input_ids'][index] = encodings['input_ids'][index][0:QUESTION_MAXLENGTH_SETTING]
+            encodings['attention_mask'][index] = encodings['attention_mask'][index][0:QUESTION_MAXLENGTH_SETTING]
+        else:
+            for insertIndex in range(que_length,QUESTION_MAXLENGTH_SETTING):
+                encodings['input_ids'][index].insert(insertIndex,0)
+                encodings['attention_mask'][index].insert(insertIndex,0)
     
 
     """
@@ -214,7 +228,6 @@ def data_processing(url1, url2):
 
     return encodings
 
-
 if __name__ == "__main__":
     #union test and utilize example below
     encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json", "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json")
@@ -224,12 +237,3 @@ if __name__ == "__main__":
 
     print("length of end_postion:",len(encodings['end_positions']))
     print("end_position:",encodings['end_positions'][0])
-
-
-    """
-    print("length of encoding:",len(encodings['input_ids'][10]))
-    print("length of attention:",len(encodings['attention_mask'][10]))
-
-    print("encoding:",encodings['input_ids'][10])
-    print("attention:",encodings['attention_mask'][10])
-    """
