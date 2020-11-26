@@ -84,8 +84,8 @@ class BERT_plus_BiDAF(nn.Module):
         # Feed into BERT
         bert_features, _ = self.bert_layer(input_ids = input_ids, token_type_ids = None, attention_mask = input_mask, output_all_encoded_layers=False) # (N,L,d)
         # Separate features
-        bert_question_features = bert_features[:, 1:self.question_len,:] # (N,J,d)
-        bert_context_features = torch.cat((bert_features[:, 0, :], bert_features[:, self.question_len:, :]), dim = 1) # (N,T,d), NOTE: T+J = 512
+        bert_question_features = bert_features[:, 1:self.question_len+1,:] # (N,J,d) J=62
+        bert_context_features = torch.cat((bert_features[:, 0, :].unsqueeze(dim=1), bert_features[:, self.question_len+2:-1, :]), dim=1) # (N,T,d), T=448 NOTE: T+J = 510， context is [CLS] context
         
         
         # Feed into CNN
@@ -114,13 +114,16 @@ class BERT_plus_BiDAF(nn.Module):
 
         # If we use extra modeling layer
         if self.modeling_layer:
-            combined_features = self.modeling_layer(combined_features) #(N,T,2d)
+            combined_features = self.modeling_layer(combined_features)[0] #(N,T,d)
         
         start_logits, end_logits = self.prediction_layer(combined_features)
 
         total_loss = None
         # Compute loss
         if start_pos is not None and end_pos is not None:
+            # adjust to our context:
+            start_pos[start_pos!=0] += self.question_len + 1
+            end_pos[end_pos!=0] += self.question_len + 1
             # sometimes the start/end positions are outside our model inputs, we ignore these terms
             ignored_index = start_logits.size(1)
             start_pos.clamp_(0, ignored_index)
@@ -136,3 +139,4 @@ class BERT_plus_BiDAF(nn.Module):
 if __name__ == "__main__":
     model = BERT_plus_BiDAF(if_extra_modeling=True)
     print(model)
+    
