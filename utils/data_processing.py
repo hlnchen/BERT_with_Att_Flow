@@ -129,12 +129,15 @@ def postTokenize(encodings):
     for index in range(n):
         que_length = getQuestionLength(encodings,index)
         if que_length > QUESTION_MAXLENGTH_SETTING:
-            encodings['input_ids'][index] = encodings['input_ids'][index][0:QUESTION_MAXLENGTH_SETTING]
-            encodings['attention_mask'][index] = encodings['attention_mask'][index][0:QUESTION_MAXLENGTH_SETTING]
+            encodings['input_ids'][index] = encodings['input_ids'][index][0:QUESTION_MAXLENGTH_SETTING] + encodings['input_ids'][index][que_length:]
+            encodings['attention_mask'][index] = encodings['attention_mask'][index][0:QUESTION_MAXLENGTH_SETTING] + encodings['attention_mask'][index][que_length:]
         else:
             for insertIndex in range(que_length,QUESTION_MAXLENGTH_SETTING):
                 encodings['input_ids'][index].insert(insertIndex,0)
                 encodings['attention_mask'][index].insert(insertIndex,0)
+
+        paddingLength = QUESTION_MAXLENGTH_SETTING - que_length
+        paddingLengths.append(paddingLength)
     
 
     """
@@ -227,5 +230,5 @@ if __name__ == "__main__":
     print("length of start_postion:",len(encodings['start_positions']))
     print("start_position:",encodings['start_positions'][0])
 
-    print("length of end_postion:",len(encodings['end_positions']))
-    print("end_position:",encodings['end_positions'][0])
+    print("length of input_ids",len(encodings['input_ids'][0]))
+    print("length of mask",len(encodings['attention_mask'][0]))
