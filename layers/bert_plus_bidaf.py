@@ -3,8 +3,9 @@ This file contains the definition of our main model class:
 
 Input: the input of BERT
 
-Output: [answer_start], [answer_end]
-tensor of size [batch_size, context_length, 1]
+Output: 
+p_start, p_end of shape [batch_size, sequence_len, 1] which indicates 
+the probability that the word at each position is the start/end of the answer span.
 """
 
 import torch
@@ -69,7 +70,7 @@ class BERT_plus_BiDAF(nn.Module):
         else:
             self.prediction_layer = PredictionLayer(feature_dimension=4*self.hidden_dim)
 
-    def forward(self, input_ids, input_mask):
+    def forward(self, input_ids, input_mask, start_pos = None, end_pos = None):
         """ 
         Inputs:
         `input_ids`: a torch.LongTensor of shape [batch_size, sequence_length](N,T) with the word token indices in the vocabulary
@@ -77,12 +78,14 @@ class BERT_plus_BiDAF(nn.Module):
             selected in [0, 1]. It's a mask to be used if the input sequence length is smaller than the max
             input sequence length in the current batch. It's the mask that we typically use for attention when
             a batch has varying length sentences.
+        `start_pos`: the start of the answer span [batch_size]
+        `end_pos`: the end of the answer span [batch_size]
         """
         # Feed into BERT
         bert_features, _ = self.bert_layer(input_ids = input_ids, token_type_ids = None, attention_mask = input_mask, output_all_encoded_layers=False) # (N,L,d)
         # Separate features
-        bert_question_features = bert_features[:, 1:self.question_len,:] # (N,J,d)
-        bert_context_features = torch.cat((bert_features[:, 0, :], bert_features[:, self.question_len:, :]), dim = 1) # (N,T,d), NOTE: T+J = 512
+        bert_question_features = bert_features[:, 1:self.question_len+1,:] # (N,J,d) J=62
+        bert_context_features = torch.cat((bert_features[:, 0, :].unsqueeze(dim=1), bert_features[:, self.question_len+2:-1, :]), dim=1) # (N,T,d), T=448 NOTE: T+J = 510， context is [CLS] context
         
         
         # Feed into CNN
@@ -100,8 +103,6 @@ class BERT_plus_BiDAF(nn.Module):
             c2q_attention, q2c_attention = self.attention_layer(context_features, question_features) # (N,T,2d), (N,T,2d)
         else:
             c2q_attention, q2c_attention = self.attention_layer(bert_context_features, bert_question_features) # (N,T,d), (N,T,d)
-
-       
         
         # Combine all features and make prediction
         if self.cnn:
@@ -113,12 +114,29 @@ class BERT_plus_BiDAF(nn.Module):
 
         # If we use extra modeling layer
         if self.modeling_layer:
-            combined_features = self.modeling_layer(combined_features) #(N,T,2d)
+            combined_features = self.modeling_layer(combined_features)[0] #(N,T,d)
         
-        p_start, p_end = self.prediction_layer(combined_features)
+        start_logits, end_logits = self.prediction_layer(combined_features)
 
-        return p_start, p_end
+        total_loss = None
+        # Compute loss
+        if start_pos is not None and end_pos is not None:
+            # adjust to our context:
+            start_pos[start_pos!=0] += self.question_len + 1
+            end_pos[end_pos!=0] += self.question_len + 1
+            # sometimes the start/end positions are outside our model inputs, we ignore these terms
+            ignored_index = start_logits.size(1)
+            start_pos.clamp_(0, ignored_index)
+            end_pos.clamp_(0, ignored_index)
+
+            loss = nn.CrossEntropyLoss(ignore_index=ignored_index)
+            start_loss = loss(start_logits, start_pos)
+            end_loss = loss(end_logits, end_pos)
+            total_loss = (start_loss + end_loss)/2
+        
+        return total_loss, start_logits, end_logits
 
 if __name__ == "__main__":
     model = BERT_plus_BiDAF(if_extra_modeling=True)
     print(model)
+    

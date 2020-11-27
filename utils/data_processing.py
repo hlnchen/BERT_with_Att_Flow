@@ -210,18 +210,10 @@ def modify_token_positions(encodings, paddingLengths, answers):
 
 
 
-def data_processing(url1, url2):
-    """
-    two urls for train and validation data, respectively
-    """
-    response1, response2 = urllib.request.urlopen(url1), urllib.request.urlopen(url2)
-    raw1, raw2 = pd.read_json(response1), pd.read_json(response2)
-    contexts1, questions1, answers1, ids1 = load_data(raw1)
-    contexts2, questions2, answers2, ids2 = load_data(raw2)
-    contexts = contexts1 + contexts2
-    answers = answers1 + answers2
-    questions = questions1 + questions2
-    ids = ids1 + ids2
+def data_processing(url):
+    response = urllib.request.urlopen(url)
+    raw = pd.read_json(response)
+    contexts, questions, answers, ids = load_data(raw)
     add_end_idx(answers,contexts)
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     encodings = tokenizer(questions, contexts, truncation = True, padding = True)

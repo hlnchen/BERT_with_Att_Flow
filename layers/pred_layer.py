@@ -20,9 +20,10 @@ class PredictionLayer(nn.Module):
         Input:
         Final features of shape [batch_size, sequence_len, feature_dim](N,T,d)
         Output:
-        p_start, p_end of shape [batch_size, sequence_len, 1] which indicates 
+        logits_start, logits_end of shape [batch_size, sequence_len] which are used for compute
         the probability that the word at each position is the start/end of the answer span.
         """
-        p_start = F.softmax(self.pred_start(features).squeeze(), dim = -1) # softmax((N,T))
-        p_end = F.softmax(self.pred_end(features).squeeze(), dim = -1) # softmax((N,T))
-        return p_start, p_end
+        logits_start = self.pred_start(features).squeeze()# (N,T)
+        logits_end = self.pred_end(features).squeeze() # (N,T)
+
+        return logits_start, logits_end
