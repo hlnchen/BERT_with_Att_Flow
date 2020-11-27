@@ -240,3 +240,5 @@ if __name__ == "__main__":
 
     print("length of input_ids",len(encodings['input_ids'][0]))
     print("length of mask",len(encodings['attention_mask'][0]))
+
+
