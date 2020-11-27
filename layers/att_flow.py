@@ -32,11 +32,11 @@ class AttFlow(nn.Module):
         question_features_expanded = question_features.unsqueeze(1)                 # (N,1,J,d)
         question_features_expanded = question_features_expanded.expand(shape)       # (N,T,J,d)
         entrywise_prod = torch.mul(context_features_expanded, question_features_expanded)   # (N,T,J,d)
-        concat_feature = torch.cat((context_features_expanded, question_features_expanded, entrywise_prod), 2) # (N,T,J,3d)
+        concat_feature = torch.cat((context_features_expanded, question_features_expanded, entrywise_prod), dim = -1) # (N,T,J,3d)
         similarity = self.weight(concat_feature).view(batch_size, length_context, length_quesiton) # (N,T,J)
 
         # Context2Question attention
-        c2q = torch.bmm(F.softmax(similarity, dim=2), question_features) # (N,T,J) * (N,J,d) -> (N,T,d)
+        c2q = torch.bmm(F.softmax(similarity, dim=-1), question_features) # (N,T,J) * (N,J,d) -> (N,T,d)
 
         # Question2Context attention
         b = F.softmax(torch.max(similarity, dim=2)[0], dim=-1) # (N,T)
