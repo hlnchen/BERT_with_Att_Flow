@@ -102,7 +102,7 @@ class BERT_plus_BiDAF(nn.Module):
             question_features = torch.cat((bert_question_features, cnn_question_features), dim = -1) # (N,T,2d)
             c2q_attention, q2c_attention = self.attention_layer(context_features, question_features) # (N,T,2d), (N,T,2d)
         else:
-            c2q_attention, q2c_attention = self.attention_layer(bert_context_features, bert_question_features) # (N,T,d), (N,T,d)
+            c2q_attention, q2c_attention = self.attention_layer(bert_context_features, bert_question_features) # (N,T,d), (N,J,d)
         
         # Combine all features and make prediction
         if self.cnn:
@@ -114,7 +114,7 @@ class BERT_plus_BiDAF(nn.Module):
 
         # If we use extra modeling layer
         if self.modeling_layer:
-            combined_features = self.modeling_layer(combined_features)[0] #(N,T,d)
+            combined_features = self.modeling_layer(combined_features)[0] #(N,T,2d)
         
         start_logits, end_logits = self.prediction_layer(combined_features)
 
