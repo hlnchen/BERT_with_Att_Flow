@@ -16,7 +16,7 @@ class SquadDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.encodings.input_ids)
 
-def train(model, optimizer, dataloader, num_epochs = 3):
+def train(device, model, optimizer, dataloader, num_epochs = 3):
     """
     Inputs:
     model: a pytorch model
@@ -87,7 +87,7 @@ def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
 
     optimizer = optim.Adam(parameters, lr=learing_rate)
     dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
-    trained_model = train(model, optimizer, dataloader, num_epochs=num_epochs)
+    trained_model = train(device, model, optimizer, dataloader, num_epochs=num_epochs)
     torch.save(trained_model,'trained_model.pt')
 
 if __name__ == "__main__":
