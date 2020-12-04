@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import collections, time
+import collections, time sys
 from layers.bert_plus_bidaf import BERT_plus_BiDAF
 from utils import data_processing
 from torch.utils.data import DataLoader
@@ -61,7 +61,7 @@ def train(model, optimizer, dataloader, num_epochs = 3):
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     return model.state_dict()
 
-if __name__ == "__main__":
+def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     train_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
     train_encodings =  data_processing.data_processing(train_url)
     train_dataset = SquadDataset(train_encodings)
@@ -80,7 +80,18 @@ if __name__ == "__main__":
         if param.requires_grad:
             print("\t", name)
     
-    optimizer = optim.Adam(parameters, lr=5e-5)
-    dataloader = DataLoader(train_dataset,batch_size=16,shuffle=True)
-    trained_model = train(model, optimizer, dataloader, num_epochs=3)
+    print("Hyperparameters:","\n","-"*10)
+    print("Learning Rate: ", learing_rate)
+    print("Batch Size: ", batch_size)
+    print("Number of Epochs: ", num_epochs)
+    
+    optimizer = optim.Adam(parameters, lr=learing_rate)
+    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
+    trained_model = train(model, optimizer, dataloader, num_epochs=num_epochs)
     torch.save(trained_model,'trained_model.pt')
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3:
+        main(sys.argv[0], sys.argv[1], sys.argv[2])
+    else:
+        main()
