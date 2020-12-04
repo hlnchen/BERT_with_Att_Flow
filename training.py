@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import collections, time sys
+import collections, time, sys
 from layers.bert_plus_bidaf import BERT_plus_BiDAF
 from utils import data_processing
 from torch.utils.data import DataLoader
@@ -84,7 +84,7 @@ def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     print("Learning Rate: ", learing_rate)
     print("Batch Size: ", batch_size)
     print("Number of Epochs: ", num_epochs)
-    
+
     optimizer = optim.Adam(parameters, lr=learing_rate)
     dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
     trained_model = train(model, optimizer, dataloader, num_epochs=num_epochs)
