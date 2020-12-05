@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import collections, time, sys
+import collections, time, sys, logging
 from layers.bert_plus_bidaf import BERT_plus_BiDAF
 from utils import data_processing
 from torch.utils.data import DataLoader
@@ -27,8 +27,8 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
     start = time.time()
 
     for epoch in range(num_epochs):
-        print('Epoch {}/{}:'.format(epoch, num_epochs - 1))
-        print('-'*10)
+        logger.info('Epoch {}/{}:'.format(epoch, num_epochs - 1))
+        logger.info('-'*10)
         # Each epoch we make a training and a validation phase
         model.train()
             
@@ -54,11 +54,11 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
             running_loss += loss
 
         epoch_loss = running_loss
-        print('Loss: {:.4f}'.format(epoch_loss))
+        logger.info('Loss: {:.4f}'.format(epoch_loss))
 
     # Output info after training
     time_elapsed = time.time() - start
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     return model.state_dict()
 
 def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
@@ -67,23 +67,24 @@ def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     train_dataset = SquadDataset(train_encodings)
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
+    logger.info(device)
 
     model = BERT_plus_BiDAF(if_extra_modeling=True)
     model.to(device)
-    print("Model Structure:","\n","-"*10)
-    print(model)
+    logger.info("Model Structure:"+"\n"+"-"*10)
+    logger.info(model)
 
     parameters = model.parameters()
-    print("Parameters to learn:","\n","-"*10)
+    logger.info("Parameters to learn:"+"\n"+"-"*10)
     for name, param in model.named_parameters():
         if param.requires_grad:
-            print("\t", name)
+            logger.info("\t"+str(name))
     
-    print("Hyperparameters:","\n","-"*10)
-    print("Learning Rate: ", learing_rate)
-    print("Batch Size: ", batch_size)
-    print("Number of Epochs: ", num_epochs)
+    logger.info("Hyperparameters:"+"\n"+"-"*10)
+    logger.info("Learning Rate: " + str(learing_rate))
+    logger.info("Batch Size: "+ str(batch_size))
+    logger.info("-"*10)
+    logger.info("Number of Epochs: "+ str(num_epochs))
 
     optimizer = optim.Adam(parameters, lr=learing_rate)
     dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
@@ -91,6 +92,10 @@ def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     torch.save(trained_model,'trained_model.pt')
 
 if __name__ == "__main__":
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.FileHandler("train_log.log"))
+    logger.addHandler(logging.StreamHandler(sys.stdout))
     if len(sys.argv) == 3:
         main(sys.argv[0], sys.argv[1], sys.argv[2])
     else:
