@@ -63,7 +63,7 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
 
 def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     train_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
-    train_encodings =  data_processing.data_processing(train_url)
+    train_encodings, _ =  data_processing.data_processing(train_url)
     train_dataset = SquadDataset(train_encodings)
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
