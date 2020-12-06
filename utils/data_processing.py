@@ -111,21 +111,6 @@ def postTokenize(encodings):
 
     #get max question length
     n = len(encodings['input_ids'])
-
-    """
-    maxQueLen = 0
-    for index in range(n):
-        queLen = getQuestionLength(encodings,index)
-        if queLen > maxQueLen:
-            maxQueLen = queLen
-    """
-
-    """
-    for index in range(n):
-        paddingLength = addPaddingQuestion(encodings,index,maxQueLen)
-        paddingLengths.append(paddingLength)
-    """
-
     for index in range(n):
         que_length = getQuestionLength(encodings,index)
         if que_length > QUESTION_MAXLENGTH_SETTING:
@@ -176,6 +161,13 @@ def add_token_positions(encodings, answers, tokenizer):
         else:
             start_positions.append(encodings.char_to_token(i,answers[i]['answer_start']))
             end_positions.append(encodings.char_to_token(i,answers[i]['answer_end']-1))
+
+            """
+            if i==0:
+                token_start = encodings.char_to_token(i,answers[i]['answer_start'])
+                token_end = encodings.char_to_token(i,answers[i]['answer_end']-1)
+                print(encodings['input_ids'][0][token_start])
+            """
             #if none, the answer span has been truncated
             if start_positions[-1] is None:
                 start_positions[-1] = tokenizer.model_max_length
@@ -197,8 +189,12 @@ def modify_token_positions(encodings, paddingLengths, answers):
             start_positions.append(0)
             end_positions.append(0)
         else:
-            start_position = encodings['start_positions'][i] + paddingLengths[i]
-            end_position = encodings['end_positions'][i] + paddingLengths[i]
+            #start_position = encodings['start_positions'][i] + paddingLengths[i]
+            #end_position = encodings['end_positions'][i] + paddingLengths[i]
+            start_position = encodings['start_positions'][i] + QUESTION_MAXLENGTH_SETTING
+            end_position = encodings['end_positions'][i] + QUESTION_MAXLENGTH_SETTING
+            print('start_position:',start_position)
+            print('end_position:',end_position)
             if start_position > 511:
                 start_position = 511
             if end_position > 511:
@@ -216,7 +212,8 @@ def data_processing(url):
     add_end_idx(answers,contexts)
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     encodings = tokenizer(questions, contexts, truncation = True, padding = True)
-    add_token_positions(encodings,answers,tokenizer)
+    another_encodings = tokenizer(contexts, questions, truncation = True, padding = True)
+    add_token_positions(another_encodings,answers,tokenizer)
     paddingLengths = postTokenize(encodings)
     modify_token_positions(encodings,paddingLengths,answers)
 
