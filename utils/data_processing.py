@@ -209,7 +209,6 @@ def modify_token_positions(encodings, paddingLengths, answers):
     encodings.update({'start_positions':start_positions,'end_positions':end_positions})    
 
 
-
 def data_processing(url):
     response = urllib.request.urlopen(url)
     raw = pd.read_json(response)
@@ -221,7 +220,7 @@ def data_processing(url):
     paddingLengths = postTokenize(encodings)
     modify_token_positions(encodings,paddingLengths,answers)
 
-    return encodings
+    return encodings, answers
 
 if __name__ == "__main__":
     #union test and utilize example below

@@ -36,7 +36,7 @@ class SquadDataset(torch.utils.data.Dataset):
 train_dataset = SquadDataset(train_encodings)
 val_dataset = SquadDataset(val_encodings)
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BERT_plus_BiDAF(if_extra_modeling=True)
 model.to(device)
 parameters = model.parameters()
@@ -115,7 +115,7 @@ def train(model, optimizer, dataloader, num_epochs = 3):
     return copy.deepcopy(model.state_dict())
 
 
-dataloader = DataLoader(train_dataset,batch_size=2,shuffle=True)
+dataloader = DataLoader(train_dataset,batch_size=4,shuffle=True)
 
 trained_model = train(model, optimizer, dataloader, num_epochs=3)
-print(trained_model)
+torch.save(trained_model.state_dict(),'bert_BiDAF.pt')

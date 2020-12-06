@@ -121,15 +121,11 @@ class BERT_plus_BiDAF(nn.Module):
         total_loss = None
         # Compute loss
         if start_pos is not None and end_pos is not None:
-            # adjust to our context:
-            start_pos[start_pos!=0] += self.question_len + 1
-            end_pos[end_pos!=0] += self.question_len + 1
-            # sometimes the start/end positions are outside our model inputs, we ignore these terms
-            ignored_index = start_logits.size(1)
-            start_pos.clamp_(0, ignored_index)
-            end_pos.clamp_(0, ignored_index)
+            # adjust to our context paddings:
+            start_pos[start_pos!=0] -= (self.question_len + 1)
+            end_pos[end_pos!=0] -= (self.question_len + 1)
 
-            loss = nn.CrossEntropyLoss(ignore_index=ignored_index)
+            loss = nn.CrossEntropyLoss()
             start_loss = loss(start_logits, start_pos)
             end_loss = loss(end_logits, end_pos)
             total_loss = (start_loss + end_loss)/2
