@@ -34,7 +34,7 @@ import torch
 CLS_TOKEN = 101
 SEP_TOKEN = 102
 QUESTION_MAXLENGTH_SETTING = 62    # we can adjust this setting； If question over that length, do truncation
-MAX_LENGTH = 512  #max input ength that bert model can accept
+MAX_LENGTH = 512  #max input length that bert model can accept
 
 def load_data(train_df):
     contexts = []
@@ -224,7 +224,7 @@ def data_processing(url):
 
 if __name__ == "__main__":
     #union test and utilize example below
-    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json", "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json")
+    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
 
     print("length of start_postion:",len(encodings['start_positions']))
     print("start_position:",encodings['start_positions'][0])
