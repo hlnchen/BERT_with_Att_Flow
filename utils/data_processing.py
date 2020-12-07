@@ -184,10 +184,8 @@ def modify_token_positions(encodings, paddingLengths, answers, origi_start_posit
         else:
             #start_position = encodings['start_positions'][i] + paddingLengths[i]
             #end_position = encodings['end_positions'][i] + paddingLengths[i]
-            start_position = origi_start_positions + QUESTION_MAXLENGTH_SETTING
-            end_position = origi_end_positions + QUESTION_MAXLENGTH_SETTING
-            print('start_position:',start_position)
-            print('end_position:',end_position)
+            start_position = origi_start_positions[i] + QUESTION_MAXLENGTH_SETTING
+            end_position = origi_end_positions[i] + QUESTION_MAXLENGTH_SETTING
             if start_position > 511:
                 start_position = 511
             if end_position > 511:
@@ -214,7 +212,7 @@ def data_processing(url):
 
 if __name__ == "__main__":
     #union test and utilize example below
-    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
+    encodings, answers =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
 
     print("length of start_postion:",len(encodings['start_positions']))
     print("start_position:",encodings['start_positions'][0])
