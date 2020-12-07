@@ -34,7 +34,7 @@ import torch
 CLS_TOKEN = 101
 SEP_TOKEN = 102
 QUESTION_MAXLENGTH_SETTING = 62    # we can adjust this setting； If question over that length, do truncation
-MAX_LENGTH = 512  #max input ength that bert model can accept
+MAX_LENGTH = 512  #max input length that bert model can accept
 
 def load_data(train_df):
     contexts = []
@@ -111,21 +111,6 @@ def postTokenize(encodings):
 
     #get max question length
     n = len(encodings['input_ids'])
-
-    """
-    maxQueLen = 0
-    for index in range(n):
-        queLen = getQuestionLength(encodings,index)
-        if queLen > maxQueLen:
-            maxQueLen = queLen
-    """
-
-    """
-    for index in range(n):
-        paddingLength = addPaddingQuestion(encodings,index,maxQueLen)
-        paddingLengths.append(paddingLength)
-    """
-
     for index in range(n):
         que_length = getQuestionLength(encodings,index)
         if que_length > QUESTION_MAXLENGTH_SETTING:
@@ -182,14 +167,14 @@ def add_token_positions(encodings, answers, tokenizer):
             if end_positions[-1] is None:
                 end_positions[-1] = tokenizer.model_max_length
 
-    encodings.update({'start_positions':start_positions,'end_positions':end_positions})
+    return start_positions, end_positions
 
 """
 after padding to QUESTION, token_position of answer will move to right
 so we need modify token_positions of answer
 """
 
-def modify_token_positions(encodings, paddingLengths, answers):
+def modify_token_positions(encodings, paddingLengths, answers, origi_start_positions, origi_end_positions):
     start_positions = []
     end_positions = []
     for i in range(len(answers)):
@@ -197,8 +182,10 @@ def modify_token_positions(encodings, paddingLengths, answers):
             start_positions.append(0)
             end_positions.append(0)
         else:
-            start_position = encodings['start_positions'][i] + paddingLengths[i]
-            end_position = encodings['end_positions'][i] + paddingLengths[i]
+            #start_position = encodings['start_positions'][i] + paddingLengths[i]
+            #end_position = encodings['end_positions'][i] + paddingLengths[i]
+            start_position = origi_start_positions[i] + QUESTION_MAXLENGTH_SETTING
+            end_position = origi_end_positions[i] + QUESTION_MAXLENGTH_SETTING
             if start_position > 511:
                 start_position = 511
             if end_position > 511:
@@ -216,18 +203,21 @@ def data_processing(url):
     add_end_idx(answers,contexts)
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     encodings = tokenizer(questions, contexts, truncation = True, padding = True)
-    add_token_positions(encodings,answers,tokenizer)
+    another_encodings = tokenizer(contexts, questions, truncation = True, padding = True) #another_encoding is only to get token position
+    origi_start_positions, origi_end_positions = add_token_positions(another_encodings,answers,tokenizer)
     paddingLengths = postTokenize(encodings)
-    modify_token_positions(encodings,paddingLengths,answers)
+    modify_token_positions(encodings,paddingLengths,answers, origi_start_positions, origi_end_positions)
 
     return encodings, answers
 
 if __name__ == "__main__":
     #union test and utilize example below
-    encodings =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json", "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json")
+    encodings, answers =  data_processing("https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json")
 
     print("length of start_postion:",len(encodings['start_positions']))
     print("start_position:",encodings['start_positions'][0])
 
     print("length of input_ids",len(encodings['input_ids'][0]))
     print("length of mask",len(encodings['attention_mask'][0]))
+
+
