@@ -14,16 +14,10 @@ from utils import data_processing
 from torch.utils.data import DataLoader
 
 train_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
-val_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json"
-train_encodings =  data_processing.data_processing(train_url)
-val_encodings = data_processing.data_processing(val_url)
-
+train_encodings, _ =  data_processing.data_processing(train_url)
 #create a smaller dataset for trying
 for key in train_encodings.keys():
     train_encodings[key] = train_encodings[key][0:100]
-
-for key in val_encodings.keys():
-    val_encodings[key] = val_encodings[key][0:100]
 
 class SquadDataset(torch.utils.data.Dataset):
   def __init__(self,encodings):
@@ -34,7 +28,6 @@ class SquadDataset(torch.utils.data.Dataset):
     return len(self.encodings.input_ids)
 
 train_dataset = SquadDataset(train_encodings)
-val_dataset = SquadDataset(val_encodings)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BERT_plus_BiDAF(if_extra_modeling=True)
