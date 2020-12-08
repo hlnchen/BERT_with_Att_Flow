@@ -17,7 +17,7 @@ train_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
 train_encodings, _ =  data_processing.data_processing(train_url)
 #create a smaller dataset for trying
 for key in train_encodings.keys():
-    train_encodings[key] = train_encodings[key][0:100]
+    train_encodings[key] = train_encodings[key][0:200]
 
 class SquadDataset(torch.utils.data.Dataset):
   def __init__(self,encodings):
@@ -58,8 +58,8 @@ def predict(logits_start, logits_end, threshold = 0.1):
     start[p_na + threshold > max_prob] = 0
     end[p_na + threshold > max_prob] = 0
     # adjust to the encoding structure
-    start[start!=0] += 63
-    end[end!=0] += 63
+    start[start!=0] += 62
+    end[end!=0] += 62
     return start, end
 
 def train(model, optimizer, dataloader, num_epochs = 3):
@@ -105,10 +105,10 @@ def train(model, optimizer, dataloader, num_epochs = 3):
     # Output info after training
     time_elapsed = time.time() - start
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    return copy.deepcopy(model.state_dict())
+    return model.state_dict()
 
 
-dataloader = DataLoader(train_dataset,batch_size=4,shuffle=True)
+dataloader = DataLoader(train_dataset,batch_size=2,shuffle=True)
 
-trained_model = train(model, optimizer, dataloader, num_epochs=3)
-torch.save(trained_model.state_dict(),'bert_BiDAF.pt')
+trained_model = train(model, optimizer, dataloader, num_epochs=30)
+torch.save(trained_model,'bert_BiDAF.pt')

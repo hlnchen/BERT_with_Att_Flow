@@ -108,8 +108,8 @@ def evaluate(model, eval_dataset, answers, threshold=0.1):
         # compute null score and make prediction:
         start, end = predict(torch.unsqueeze(start_logits,dim=0),torch.unsqueeze(end_logits,dim=0), threshold)
         # adjust to our context paddings
-        start[start!=0] += 63
-        end[end!=0] += 63
+        start[start!=0] += 62
+        end[end!=0] += 62
         if start == 0 and end == 0:
             prediction = ""
         else:

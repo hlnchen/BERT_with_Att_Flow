@@ -85,7 +85,7 @@ class BERT_plus_BiDAF(nn.Module):
         bert_features, _ = self.bert_layer(input_ids = input_ids, token_type_ids = None, attention_mask = input_mask, output_all_encoded_layers=False) # (N,L,d)
         # Separate features
         bert_question_features = bert_features[:, 1:self.question_len+1,:] # (N,J,d) J=62
-        bert_context_features = torch.cat((bert_features[:, 0, :].unsqueeze(dim=1), bert_features[:, self.question_len+2:-1, :]), dim=1) # (N,T,d), T=448 NOTE: T+J = 510， context is [CLS] context
+        bert_context_features = torch.cat((bert_features[:, 0, :].unsqueeze(dim=1), bert_features[:, self.question_len+1:, :]), dim=1) # (N,T,d), T=450 NOTE: T+J = 512， context is [CLS][SEP][context][SEP]
         
         
         # Feed into CNN
@@ -116,14 +116,16 @@ class BERT_plus_BiDAF(nn.Module):
         if self.modeling_layer:
             combined_features = self.modeling_layer(combined_features)[0] #(N,T,2d)
         
-        start_logits, end_logits = self.prediction_layer(combined_features)
-
+        start_logits, end_logits = self.prediction_layer(combined_features) # (N,T), (N,T)
+        if len(start_logits.shape == 1):
+            start_logits.unsqueeze(dim=0)
+            end_logits.unsqueeze
         total_loss = None
         # Compute loss
         if start_pos is not None and end_pos is not None:
             # adjust to our context paddings:
-            start_pos[start_pos!=0] -= (self.question_len + 1)
-            end_pos[end_pos!=0] -= (self.question_len + 1)
+            start_pos[start_pos!=0] -= self.question_len
+            end_pos[end_pos!=0] -= self.question_len
 
             loss = nn.CrossEntropyLoss()
             start_loss = loss(start_logits, start_pos)
