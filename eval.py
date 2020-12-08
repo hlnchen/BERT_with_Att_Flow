@@ -37,7 +37,7 @@ print(device)
 
 # In[20]:
 model = BERT_plus_BiDAF(if_extra_modeling=True)
-model.load_state_dict(torch.load('BERT_model'))
+model.load_state_dict(torch.load('bert_BiDAF.pt'))
 model.to(device)
 print("Model imported successfully")
 # In[21]:
@@ -82,7 +82,7 @@ def compute_f1(a_gold, a_pred):
     if num_same == 0:
         return 0
     precision = 1.0 * num_same / len(pred_toks)
-    recall = 1.0 * num_same / len(gold_toks)s
+    recall = 1.0 * num_same / len(gold_toks)
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
 # In[27]:
@@ -92,35 +92,36 @@ def evaluate(model, eval_dataset, answers, threshold=0.1):
     exact_match = 0
     f1_sum = 0
     model.eval()
-    for i in range(n):
-        if i%1000==0:
-            print('evaluated {}/{}:'.format(i, n))
-        input_ids = eval_dataset[i]['input_ids']
-        attention_mask = eval_dataset[i]['attention_mask']
-        golden_answer = answers[i]['text']
-        ipid = torch.unsqueeze(input_ids,0)
-        attm =torch.unsqueeze(attention_mask,0)
-        with torch.cuda.device(0):
-            ipid = ipid.cuda(async=True)  # in test loader, pin_memory = True
-            attm = attm.cuda(async=True)
-        _, start_logits, end_logits = model(ipid, attm)
+    with torch.no_grad():
+        for i in range(n):
+            if i%1000==0:
+                print('evaluated {}/{}:'.format(i, n))
+            input_ids = eval_dataset[i]['input_ids']
+            attention_mask = eval_dataset[i]['attention_mask']
+            golden_answer = answers[i]['text']
+            ipid = torch.unsqueeze(input_ids,0)
+            attm =torch.unsqueeze(attention_mask,0)
+            with torch.cuda.device(0):
+                ipid = ipid.cuda(non_blocking = True)  # in test loader, pin_memory = True
+                attm = attm.cuda(non_blocking = True)
+            _, start_logits, end_logits = model(ipid, attm)
 
-        # compute null score and make prediction:
-        start, end = predict(torch.unsqueeze(start_logits,dim=0),torch.unsqueeze(end_logits,dim=0), threshold)
-        # adjust to our context paddings
-        start[start!=0] += 62
-        end[end!=0] += 62
-        if start == 0 and end == 0:
-            prediction = ""
-        else:
-            tokens = tokenizer.convert_ids_to_tokens(input_ids)
-            prediction = ' '.join(tokens[start:end + 1])
+            # compute null score and make prediction:
+            start, end = predict(torch.unsqueeze(start_logits,dim=0),torch.unsqueeze(end_logits,dim=0), threshold)
+            # adjust to our context paddings
+            start[start!=0] += 62
+            end[end!=0] += 62
+            if start == 0 and end == 0:
+                prediction = ""
+            else:
+                tokens = tokenizer.convert_ids_to_tokens(input_ids)
+                prediction = ' '.join(tokens[start:end + 1])
 
-            # exact match
-        if (prediction == golden_answer):
-            exact_match = exact_match + 1
-            # F1_score
-        f1_sum = f1_sum + compute_f1(golden_answer, prediction)
+                # exact match
+            if (prediction == golden_answer):
+                exact_match = exact_match + 1
+                # F1_score
+            f1_sum = f1_sum + compute_f1(golden_answer, prediction)
     accuracy = exact_match / n
     f1 = f1_sum / n
     return accuracy, f1
