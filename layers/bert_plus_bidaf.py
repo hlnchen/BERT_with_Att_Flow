@@ -117,9 +117,9 @@ class BERT_plus_BiDAF(nn.Module):
             combined_features = self.modeling_layer(combined_features)[0] #(N,T,2d)
         
         start_logits, end_logits = self.prediction_layer(combined_features) # (N,T), (N,T)
-        if len(start_logits.shape == 1):
+        if len(start_logits.shape) == 1:
             start_logits.unsqueeze(dim=0)
-            end_logits.unsqueeze
+            end_logits.unsqueeze(dim=0)
         total_loss = None
         # Compute loss
         if start_pos is not None and end_pos is not None:
