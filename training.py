@@ -95,7 +95,7 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.FileHandler("train_log.log"))
-    if len(sys.argv) == 3:
-        main(sys.argv[0], sys.argv[1], sys.argv[2])
+    if len(sys.argv) == 4:
+        main(sys.argv[1], sys.argv[2], sys.argv[3])
     else:
         main()
