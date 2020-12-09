@@ -96,6 +96,6 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.FileHandler("train_log.log"))
     if len(sys.argv) == 4:
-        main(sys.argv[1], sys.argv[2], sys.argv[3])
+        main(float(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
     else:
         main()
