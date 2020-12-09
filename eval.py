@@ -111,9 +111,18 @@ def evaluate(model, eval_dataset, answers, threshold=0.1):
                 print('evaluated {}/{}:'.format(i, n))
             input_ids = eval_dataset[i]['input_ids']
             attention_mask = eval_dataset[i]['attention_mask']
-            golden_answer = normalize_answer(answers[i]['text']) 
             ipid = torch.unsqueeze(input_ids,0)
             attm = torch.unsqueeze(attention_mask,0)
+            
+            # golden_answer = normalize_answer(answers[i]['text']) 
+            tokens = tokenizer.convert_ids_to_tokens(input_ids)
+            golden_start, golden_end = eval_dataset[i]['start_positions'], eval_dataset[i]['end_positions']
+            if golden_start == 0 and golden_end == 0:
+                golden_answer = "noanswer"
+            else:
+                golden_answer = normalize_answer(' '.join(tokens[golden_start:golden_end + 1]))
+
+
             with torch.cuda.device(0):
                 ipid = ipid.cuda(non_blocking=True)  # in test loader, pin_memory = True
                 attm = attm.cuda(non_blocking=True)
@@ -124,19 +133,17 @@ def evaluate(model, eval_dataset, answers, threshold=0.1):
             # adjust to the context padding
             start[start!=0] += 62
             end[end!=0] += 62
-            if (i%1000 == 0):
-                print("sample ",i,': ', start, end)
-                print("true ", i, ': ', eval_dataset[i]['start_positions'], eval_dataset[i]['end_positions'])
+            # print("sample ",i,': ', start, end)
+            # print("true ", i, ': ', eval_dataset[i]['start_positions'], eval_dataset[i]['end_positions'])
             if start == 0 and end == 0:
-                prediction = ""
+                prediction = "noanswer"
             else:
-                tokens = tokenizer.convert_ids_to_tokens(input_ids)
-                prediction = ' '.join(tokens[start:end + 1])
+                prediction = normalize_answer(' '.join(tokens[start:end + 1]))
 
-                # exact match
+            # exact match
             if (prediction == golden_answer):
                 exact_match = exact_match + 1
-                # F1_score
+            # F1_score
             f1_sum = f1_sum + compute_f1(golden_answer, prediction)
     accuracy = exact_match / n
     f1 = f1_sum / n
