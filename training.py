@@ -61,7 +61,7 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
     logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     return model.state_dict()
 
-def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
+def main(learing_rate = 1e-5, batch_size = 6, num_epochs = 6):
     train_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
     train_encodings, _ =  data_processing.data_processing(train_url)
     train_dataset = SquadDataset(train_encodings)
