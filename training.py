@@ -55,7 +55,8 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
 
         epoch_loss = running_loss/len(dataloader)
         logger.info('Loss: {:.4f}'.format(epoch_loss))
-
+        if epoch >= 3:
+            torch.save(model.state_dict(),'checkpoint.pt')
     # Output info after training
     time_elapsed = time.time() - start
     logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
