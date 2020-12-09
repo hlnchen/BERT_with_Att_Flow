@@ -53,7 +53,7 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
             # Compute running loss/accuracy
             running_loss += loss
 
-        epoch_loss = running_loss
+        epoch_loss = running_loss/len(dataloader)
         logger.info('Loss: {:.4f}'.format(epoch_loss))
 
     # Output info after training
@@ -87,7 +87,7 @@ def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     logger.info("Number of Epochs: "+ str(num_epochs))
 
     optimizer = optim.Adam(parameters, lr=learing_rate)
-    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
+    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=4)
     trained_model = train(device, model, optimizer, dataloader, num_epochs=num_epochs)
     torch.save(trained_model,'trained_model.pt')
 
