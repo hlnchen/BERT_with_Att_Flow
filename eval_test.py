@@ -1,23 +1,31 @@
+# To add a new cell, type '# %%'
+# To add a new markdown cell, type '# %% [markdown]'
+# %%
 import torch
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import collections, time, spacy, copy, re, string
+import collections, time, spacy, copy, string, re
 from layers.bert_plus_bidaf import BERT_plus_BiDAF
 from utils import data_processing
 from torch.utils.data import DataLoader
 from transformers import BertTokenizerFast
-#import nltk
-#nltk.download('punkt')
-# In[16]:
-val_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json"
-val_encodings, val_answer = data_processing.data_processing(val_url)
-torch.save(val_answer,r'val_answer.pt')
-# In[]
-# val_encodings = torch.load(r'D:\OneDrive\Courses\ECS289 NLP\val_encodings.pt')
-# val_answer=torch.load(r'val_answer.pt')
-# In[17]:
+
+
+# %%
+# val_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json"
+# val_encodings, val_answer = data_processing.data_processing(val_url)
+# torch.save(val_answer,r'D:\OneDrive\Courses\ECS289 NLP\val_answer.pt')
+# torch.save(val_encodings,r'D:\OneDrive\Courses\ECS289 NLP\val_encodings.pt')
+
+
+# %%
+val_encodings = torch.load(r'D:\OneDrive\Courses\ECS289 NLP\val_encodings.pt')
+val_answer=torch.load(r'D:\OneDrive\Courses\ECS289 NLP\val_answer.pt')
+
+
+# %%
 class SquadDataset(torch.utils.data.Dataset):
   def __init__(self,encodings):
     self.encodings = encodings
@@ -27,20 +35,23 @@ class SquadDataset(torch.utils.data.Dataset):
     return len(self.encodings.input_ids)
 
 
-# In[18]:
+# %%
 val_dataset = SquadDataset(val_encodings)
-# This part should be model construction.
 
-# In[19]:
+
+# %%
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-# In[20]:
+
+# %%
 model = BERT_plus_BiDAF(if_extra_modeling=True)
-model.load_state_dict(torch.load('bert_BiDAF.pt'))
-model.to(device)
+model.load_state_dict(torch.load(r'D:\OneDrive\Courses\ECS289 NLP\bert_BiDAF.pt'))
+model = model.to(device)
 print("Model imported successfully")
-# In[21]:
+
+
+# %%
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
 def predict(logits_start, logits_end, threshold = 0.1):
     """
@@ -64,7 +75,16 @@ def predict(logits_start, logits_end, threshold = 0.1):
     start[p_na + threshold > max_prob] = 0
     end[p_na + threshold > max_prob] = 0
     return start, end
-    
+
+
+# %%
+nlp = spacy.blank("en")
+def word_tokenize(sent):
+    doc = nlp(sent)
+    return [token.text for token in doc]
+
+
+# %%
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
     def remove_articles(text):
@@ -78,12 +98,6 @@ def normalize_answer(s):
     def lower(text):
         return text.lower()
     return white_space_fix(remove_articles(remove_punc(lower(s))))
-# In[24]:
-nlp = spacy.blank("en")
-def word_tokenize(sent):
-    doc = nlp(sent)
-    return [token.text for token in doc]
-# In[26]:
 def compute_f1(a_gold, a_pred):
     gold_toks = word_tokenize(a_gold)
     pred_toks = word_tokenize(a_pred)
@@ -98,7 +112,9 @@ def compute_f1(a_gold, a_pred):
     recall = 1.0 * num_same / len(gold_toks)
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
-# In[27]:
+
+
+# %%
 def evaluate(model, eval_dataset, answers, threshold=0.1):
     """ TODO: debug"""
     n = len(eval_dataset)
@@ -142,10 +158,17 @@ def evaluate(model, eval_dataset, answers, threshold=0.1):
     f1 = f1_sum / n
     return accuracy, f1
 
-# In[]:
-em, f1 = evaluate(model, val_dataset, val_answer)
+
+# %%
+em, f1 = evaluate(model, val_dataset, val_answer, threshold=0.01)
 
 print("accuracy: ")
 print(em)
 print("f1 score: ")
 print(f1)
+
+
+# %%
+
+
+
