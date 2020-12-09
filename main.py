@@ -97,7 +97,7 @@ def train(model, optimizer, dataloader, num_epochs = 3):
             loss.backward()
             optimizer.step()                   
             # Compute running loss/accuracy
-            running_loss += loss
+            running_loss += loss.item() * input_ids.size(0)
 
         epoch_loss = running_loss
         print('Loss: {:.4f}'.format(epoch_loss))
