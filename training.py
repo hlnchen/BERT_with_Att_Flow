@@ -87,7 +87,7 @@ def main(learing_rate = 1e-5, batch_size = 6, num_epochs = 6):
     logger.info("Number of Epochs: "+ str(num_epochs))
 
     optimizer = optim.Adam(parameters, lr=learing_rate)
-    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=4)
+    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
     trained_model = train(device, model, optimizer, dataloader, num_epochs=num_epochs)
     torch.save(trained_model,'trained_model.pt')
 
