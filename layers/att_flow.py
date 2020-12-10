@@ -16,9 +16,10 @@ import torch.nn.functional as F
 import numpy as np
 
 class AttFlow(nn.Module):
-    def __init__(self, feature_dimension):
+    def __init__(self, feature_dimension, if_attention_map = False):
         super().__init__()
         self.weight = nn.Linear(3*feature_dimension, 1, bias=False)
+        self.if_attention_map = if_attention_map
 
     def forward(self, context_features: torch.Tensor, question_features: torch.Tensor):
         # Construct a similarity matrix
@@ -36,11 +37,15 @@ class AttFlow(nn.Module):
         similarity = self.weight(concat_feature).view(batch_size, length_context, length_quesiton) # (N,T,J)
 
         # Context2Question attention
-        c2q = torch.bmm(F.softmax(similarity, dim=-1), question_features) # (N,T,J) * (N,J,d) -> (N,T,d)
+        weight_c2q = F.softmax(similarity, dim=-1)
+        c2q = torch.bmm(weight_c2q, question_features) # (N,T,J) * (N,J,d) -> (N,T,d)
 
         # Question2Context attention
-        b = F.softmax(torch.max(similarity, dim=2)[0], dim=-1) # (N,T)
-        q2c = torch.bmm(b.unsqueeze(1), context_features) # (N,1,T) * (N,T,d) -> (N,1,d)
+        weight_q2c = F.softmax(torch.max(similarity, dim=2)[0], dim=-1) # (N,T)
+        q2c = torch.bmm(weight_q2c.unsqueeze(1), context_features) # (N,1,T) * (N,T,d) -> (N,1,d)
         q2c = q2c.repeat(1,length_context,1) # (N,T,d)
 
-        return c2q, q2c
+        if self.if_attention_map:
+            return c2q, q2c, weight_c2q, weight_q2c
+        else:
+            return c2q, q2c
