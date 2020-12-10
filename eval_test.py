@@ -182,10 +182,9 @@ def compare(logits, eval_dataset, tokenizer, nlp, threshold):
                 pred_answer = "noanswer"
         else:
             pred_answer = normalize_answer(' '.join(tokens[pred_start:pred_end + 1]))
-        
         if pred_answer == golden_answer:
             exact_match += 1
-            f1_sum += compute_f1(golden_answer, pred_answer, nlp)
+        f1_sum += compute_f1(golden_answer, pred_answer, nlp)
 
     acc = 100 * exact_match / n
     f1_score = 100 * f1_sum /n
@@ -210,7 +209,7 @@ if __name__ == "__main__":
     
     predictions = torch.load('pred_logits.pt')
     # predictions = evaluate(model, val_dataset)
-    
+
     threshold = np.arange(0,0.11,0.01)
     accs, f1s = [], []
     for i in range(len(threshold)):
