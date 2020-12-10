@@ -62,7 +62,7 @@ def train(device, model, optimizer, dataloader, num_epochs = 3):
     logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     return model.state_dict()
 
-def main(learing_rate = 1e-5, batch_size = 6, num_epochs = 6):
+def main(learing_rate = 5e-5, batch_size = 4, num_epochs = 3):
     train_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json"
     train_encodings, _ =  data_processing.data_processing(train_url)
     train_dataset = SquadDataset(train_encodings)
@@ -88,7 +88,7 @@ def main(learing_rate = 1e-5, batch_size = 6, num_epochs = 6):
     logger.info("Number of Epochs: "+ str(num_epochs))
 
     optimizer = optim.Adam(parameters, lr=learing_rate)
-    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True)
+    dataloader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True, num_workers=4)
     trained_model = train(device, model, optimizer, dataloader, num_epochs=num_epochs)
     torch.save(trained_model,'trained_model.pt')
 
