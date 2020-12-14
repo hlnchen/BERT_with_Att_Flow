@@ -8,6 +8,7 @@ from layers.bert_plus_bidaf import BERT_plus_BiDAF
 from utils import data_processing
 from torch.utils.data import DataLoader
 from transformers import BertTokenizerFast
+from training import SquadDataset
 # %%
 # val_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json"
 # val_encodings, val_answer = data_processing.data_processing(val_url)
@@ -15,14 +16,6 @@ from transformers import BertTokenizerFast
 # torch.save(val_encodings,r'D:\OneDrive\Courses\ECS289 NLP\val_encodings.pt')
 
 # %%
-class SquadDataset(torch.utils.data.Dataset):
-  def __init__(self,encodings):
-    self.encodings = encodings
-  def __getitem__(self,idx):
-    return {key:torch.tensor(val[idx]) for key, val in self.encodings.items()}
-  def __len__(self):
-    return len(self.encodings.input_ids)
-
 def predict(logits_start, logits_end, threshold = 0.1):
     """
     Input:
@@ -196,21 +189,21 @@ if __name__ == "__main__":
     val_answer=torch.load(r'D:\OneDrive\Courses\ECS289 NLP\val_answer.pt')
     val_dataset = SquadDataset(val_encodings)
 
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # print(device)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
 
-    # model = BERT_plus_BiDAF(if_extra_modeling=True)
-    # model.load_state_dict(torch.load(r'D:\OneDrive\Courses\ECS289 NLP\bert_BiDAF.pt'))
-    # model = model.to(device)
-    # print("Model imported successfully")
+    model = BERT_plus_BiDAF(if_bidirectional=True,if_extra_modeling=True)
+    model.load_state_dict(torch.load(r'D:\OneDrive\Courses\ECS289 NLP\bertfixed_BiDAF_BiLSTM.pt'))
+    model = model.to(device)
+    print("Model imported successfully")
     
     nlp = spacy.blank("en")
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     
-    predictions = torch.load('pred_logits.pt')
-    # predictions = evaluate(model, val_dataset)
+    # predictions = torch.load('pred_logits.pt')
+    predictions = evaluate(model, val_dataset)
 
-    threshold = np.arange(0,0.11,0.01)
+    threshold = [0]
     accs, f1s = [], []
     for i in range(len(threshold)):
         print("Compare with threshold = ", str(threshold[i]))
